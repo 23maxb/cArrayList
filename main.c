@@ -5,7 +5,7 @@
 void testCreateDestroyList() {
     LIST* list = createList();
     assert(list != NULL); // Test list creation
-
+    printf("%u\n", numItems(list));
     destroyList(list); // Test list destruction
 }
 
@@ -86,35 +86,12 @@ void testGetSetItem() {
 }
 
 int main() {
-    LIST* list = createList();
-    int items[5] = {1, 2, 3, 4, 5};
-
-    for (int i = 0; i < 5; i++) {
-        addLast(list, &items[i]);
-    }
-
-    // Test removing from the front
-    for (int i = 0; i < 5; i++) {
-        assert(*(int*) removeFirst(list) == items[i]);
-    }
-    printf("ok\n\n");
-    // Test removing from the end
-    for (int i = 0; i < 5; i++) {
-        addFirst(list, &items[i]);
-    }
-    printf("arrays:  %d\n", list->head->prev->capacity);
-    printf("valhere:  %d\n", *(int*) list->head->data[0]);
-    printf("ok1512651\n\n");
-    for (int i = 0; i < 5; i++) {
-        printf("%d\n", *(int*) getItem(list, i));
-    }
-    printf("-----------\n\n");
-
-    for (int i = 0; i < 5; i++) {
-        assert(*(int*) removeLast(list) == items[i]);
-    }
-
-    destroyList(list);
+    testCreateDestroyList();
+    printf(":yes:\n");
+    testAddFirstLast();
+    testRemoveFirstLast();
+    testGetFirstLastItem();
+    testGetSetItem();
 
     printf("All tests passed successfully.\n");
     return 0;

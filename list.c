@@ -32,7 +32,28 @@ typedef struct node {
 #define DEFAULT_SUBARRAY_LENGTH 2
 
 /**
- * Creates a new list and returns a pointer to it.
+ * Makes a new node with the given capacity and next and previous nodes.
+ * @param capacity the capacity of the new node
+ * @param next the value you want to be next (can be null)
+ * @param prev the value you want to be previous (can be null)
+ * @return the new node
+ * @tiemComplexity O(1)
+ */
+NODE* makeNode(unsigned capacity, NODE* next, NODE* prev) {
+    NODE* np = malloc(sizeof(NODE));
+    assert(np != NULL);
+    np->data = malloc(capacity * sizeof(void*));
+    assert(np->data != NULL);
+    np->capacity = capacity;
+    np->next = next;
+    np->prev = prev;
+    np->firstIndex = 0;
+    np->count = 0;
+    return np;
+}
+
+/**
+ * Creates a new list and returns a pointer to it. Defualt length is 3 * DEFAULT_SUBARRAY_LENGTH (6)
  *
  * @return the new list
  * @timeComplexity O(1)
@@ -41,15 +62,9 @@ LIST* createList() {
     LIST* lp = malloc(sizeof(LIST));
     assert(lp != NULL);
     lp->count = 0;
-    lp->head = malloc(sizeof(NODE));
-    assert(lp->head != NULL);
-    lp->head->data = malloc(DEFAULT_SUBARRAY_LENGTH * sizeof(void*));
-    assert(lp->head->data != NULL);
-    lp->head->capacity = DEFAULT_SUBARRAY_LENGTH;
-    lp->head->next = lp->head;
-    lp->head->firstIndex = 0;
-    lp->head->count = 0;
-    lp->head->prev = lp->head;
+    lp->head = makeNode(DEFAULT_SUBARRAY_LENGTH, NULL, NULL);
+    lp->head->next = makeNode(DEFAULT_SUBARRAY_LENGTH * 2, lp->head, lp->head);
+    lp->head->prev = lp->head->next;
     return lp;
 }
 
@@ -61,17 +76,16 @@ LIST* createList() {
  */
 void destroyList(LIST* lp) {
     assert(lp != NULL);
-    NODE* np = lp->head->next;
-    while (np != lp->head) {
-        NODE* next = np->next;
-        free(np->data);
-        free(np);
-        np = next;
-    }
-    free(lp->head->data);
-    free(lp->head);
+    NODE* current = lp->head;
+    do {
+        NODE* next = current->next;
+        free(current->data);
+        free(current);
+        current = next;
+    } while (current != lp->head);
     free(lp);
 }
+
 
 /**
  * Returns the number of items in the list.
@@ -95,23 +109,15 @@ int numItems(LIST* lp) {
 void addFirst(LIST* lp, void* item) {
     assert(lp != NULL);
     assert(item != NULL);
-    if (lp->head->count == lp->head->capacity) {
-        NODE* np = malloc(sizeof(NODE));
-        assert(np != NULL);
-        np->data = malloc(lp->head->capacity * 2 * sizeof(void*));
-        assert(np->data != NULL);
-        np->capacity = lp->head->capacity * 2;
-        np->next = lp->head;
-        np->prev = lp->head->prev;
-        np->firstIndex = 0;
-        np->count = 0;
+    if (lp->head->capacity == lp->head->count) {
+        NODE* np = makeNode(lp->head->capacity * 2, lp->head, lp->head->prev);
+        lp->head->prev->next = np;
+        lp->head->prev = np;
         lp->head = np;
     }
-    if (lp->head->firstIndex == 0) {
-        lp->head->firstIndex = DEFAULT_SUBARRAY_LENGTH - 1;
-    } else {
-        lp->head->firstIndex--;
-    }
+    if (lp->head->firstIndex == 0)
+        lp->head->firstIndex += lp->head->capacity;
+    lp->head->firstIndex = (lp->head->firstIndex - 1) % lp->head->capacity;
     lp->head->count++;
     lp->head->data[lp->head->firstIndex] = item;
     lp->count++;
@@ -122,40 +128,33 @@ void addFirst(LIST* lp, void* item) {
  *
  * @param lp the list to add the item to
  * @param item the item to add (cant be null)
- * @timeComplexity O(N)
+ * @timeComplexity O(1)
  */
 void addLast(LIST* lp, void* item) {
-    printf("addLast\n");
     assert(lp != NULL);
     assert(item != NULL);
-
-    if (lp->head->prev->count == lp->head->prev->capacity) {
-        NODE* np = malloc(sizeof(NODE));
-        assert(np != NULL);
-        np->data = malloc(lp->head->prev->capacity * 2 * sizeof(void*));
-        assert(np->data != NULL);
-        np->next = lp->head;
-        np->prev = lp->head->prev;
-        np->firstIndex = 0;
-        np->count = 0;
-        np->capacity = lp->head->prev->capacity * 2;
-        lp->head->prev->next = np;
-        lp->head->prev = np;
+    NODE* lastNode = lp->head->prev;
+    if (lastNode->count == lastNode->capacity) {
+        NODE* newNode = makeNode(lastNode->capacity * 2, lp->head, lastNode);
+        lastNode->next = newNode;
+        lp->head->prev = newNode;
+        lastNode = newNode;
     }
-    lp->head->prev->data[(lp->head->prev->firstIndex + lp->head->prev->count) % lp->head->prev->capacity] = item;
-    lp->head->prev->count++;
+    unsigned insertIndex = (lastNode->firstIndex + lastNode->count) % lastNode->capacity;
+    lastNode->data[insertIndex] = item;
+    lastNode->count++;
     lp->count++;
 }
+
 
 /**
  * Removes the item at the front of the list.
  *
  * @param lp the list to add the item to
  * @param item the item to add (cant be null)
- * @timeComplexity O(1)
+ * @timeComplexity O(1) usually; O(log(N)) where N is the number of elements removed from the front of the array worst case
  */
 void* removeFirst(LIST* lp) {
-    printf("removeFirst\n");
     assert(lp != NULL);
     assert(lp->count > 0);
     NODE* front = lp->head;
@@ -174,10 +173,9 @@ void* removeFirst(LIST* lp) {
  *
  * @param lp the list to remove the last element from
  * @return the removed element
- * @timeComplexity O(N)
+ * @timeComplexity O(1) usually; O(log(N)) where N is the number of elements removed from the end of the array worst case
  */
 void* removeLast(LIST* lp) {
-    printf("removeLast\n");
     assert(lp != NULL);
     assert(lp->count > 0);
     NODE* a = lp->head->prev;
@@ -195,7 +193,7 @@ void* removeLast(LIST* lp) {
  *
  * @param lp the list to get the first element from
  * @return the first element
- * @timeComplexity O(1)
+ * @timeComplexity O(1) usually; O(log(N)) where N is the number of elements removed from the front of the array worst case
  */
 void* getFirst(LIST* lp) {
     printf("getFirst\n");
@@ -213,7 +211,7 @@ void* getFirst(LIST* lp) {
  *
  * @param lp the list to get the last element from
  * @return the last element
- * @timeComplexity O(N)
+ * @timeComplexity O(1) usually; O(log(N)) where N is the number of elements removed from the end of the array worst case
  */
 void* getLast(LIST* lp) {
     assert(lp != NULL);
@@ -234,17 +232,13 @@ void* getLast(LIST* lp) {
  * @timeComplexity O(N) where N is the given index
  */
 void* getItem(LIST* lp, int index) {
-    printf("getItem %i\n", index);
     assert(lp != NULL);
     assert(index >= 0 && index < lp->count);
     NODE* np = lp->head;
-    printf("count: %u\n", lp->head->count);
     while (index >= np->count) {
-        printf("next\n");
         index -= np->count;
         np = np->next;
     }
-    printf("checking getitem: %i\n", (np->firstIndex + index) % np->capacity);
     return np->data[(np->firstIndex + index) % np->capacity];
 }
 
@@ -257,7 +251,6 @@ void* getItem(LIST* lp, int index) {
  * @timeComplexity O(N) where N is the given index
  */
 void setItem(LIST* lp, int index, void* item) {
-    printf("setItem %i\n", index);
     assert(lp != NULL);
     assert(index >= 0 && index < lp->count);
     NODE* np = lp->head;
@@ -268,15 +261,7 @@ void setItem(LIST* lp, int index, void* item) {
     np->data[(np->firstIndex + index) % np->capacity] = item;
 }
 
-int subNodes(LIST* lp) {
-    int count = 0;
-    NODE* a = lp->head;
-    while (a != NULL) {
-        count++;
-        a = a->next;
-    }
-    return count;
-}
+
 /*
 
 void debugPrint(LIST* a) {
