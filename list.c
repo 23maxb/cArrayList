@@ -1,4 +1,4 @@
-//filename: arrayList.c
+//filename: list.c
 /**
  * Defines an implementation for an arrayList.
  * This implementation is based on the list.h file provided by the professor
@@ -18,18 +18,18 @@
 typedef struct list {
     int count;
     struct node* head;
-
-    int (* compare)();
 } LIST;
 
 typedef struct node {
     void** data;
     unsigned firstIndex;
     unsigned count;
+    unsigned capacity;
     struct node* next;
+    struct node* prev;
 } NODE;
 
-#define DEFAULT_SUBARRAY_LENGTH 10
+#define DEFAULT_SUBARRAY_LENGTH 2
 
 /**
  * Creates a new list and returns a pointer to it.
@@ -45,9 +45,11 @@ LIST* createList() {
     assert(lp->head != NULL);
     lp->head->data = malloc(DEFAULT_SUBARRAY_LENGTH * sizeof(void*));
     assert(lp->head->data != NULL);
-    lp->head->next = NULL;
+    lp->head->capacity = DEFAULT_SUBARRAY_LENGTH;
+    lp->head->next = lp->head;
     lp->head->firstIndex = 0;
     lp->head->count = 0;
+    lp->head->prev = lp->head;
     return lp;
 }
 
@@ -59,13 +61,15 @@ LIST* createList() {
  */
 void destroyList(LIST* lp) {
     assert(lp != NULL);
-    NODE* np = lp->head;
-    while (np != NULL) {
+    NODE* np = lp->head->next;
+    while (np != lp->head) {
         NODE* next = np->next;
         free(np->data);
         free(np);
         np = next;
     }
+    free(lp->head->data);
+    free(lp->head);
     free(lp);
 }
 
@@ -89,14 +93,17 @@ int numItems(LIST* lp) {
  * @timeComplexity O(1)
  */
 void addFirst(LIST* lp, void* item) {
+    printf("addFirst\n");
     assert(lp != NULL);
     assert(item != NULL);
-    if (lp->head->count == DEFAULT_SUBARRAY_LENGTH) {
+    if (lp->head->count == lp->head->capacity) {
         NODE* np = malloc(sizeof(NODE));
         assert(np != NULL);
-        np->data = malloc(DEFAULT_SUBARRAY_LENGTH * sizeof(void*));
+        np->data = malloc(lp->head->capacity * 2 * sizeof(void*));
         assert(np->data != NULL);
+        np->capacity = lp->head->capacity * 2;
         np->next = lp->head;
+        np->prev = lp->head->prev;
         np->firstIndex = 0;
         np->count = 0;
         lp->head = np;
@@ -107,7 +114,6 @@ void addFirst(LIST* lp, void* item) {
         lp->head->firstIndex--;
     }
     lp->head->count++;
-    printf("item: %u\n", *((unsigned*) item));
     lp->head->data[lp->head->firstIndex] = item;
     lp->count++;
 }
@@ -120,25 +126,27 @@ void addFirst(LIST* lp, void* item) {
  * @timeComplexity O(N)
  */
 void addLast(LIST* lp, void* item) {
+    printf("addLast\n");
     assert(lp != NULL);
     assert(item != NULL);
-    NODE* last = lp->head;
-    while (last->next != NULL) {
-        last = last->next;
-    }
-    if (last->count == DEFAULT_SUBARRAY_LENGTH) {
+    NODE* last = lp->head->prev;
+    if (last->count == last->capacity) {
+
         NODE* np = malloc(sizeof(NODE));
         assert(np != NULL);
-        np->data = malloc(DEFAULT_SUBARRAY_LENGTH * sizeof(void*));
+        np->data = malloc(last->capacity * 2 * sizeof(void*));
         assert(np->data != NULL);
-        np->next = NULL;
+        np->next = lp->head;
+        np->prev = last;
         np->firstIndex = 0;
         np->count = 0;
+        np->capacity = last->capacity * 2;
         last->next = np;
-        last = np;
     }
-    last->data[last->firstIndex + last->count] = item;
-    last->count++;
+    printf("vaL ;%i\n\n", (last->firstIndex + last->count) % last->capacity);
+
+    lp->head->prev->data[(last->firstIndex + last->count) % last->capacity] = item;
+    lp->head->prev->count++;
     lp->count++;
 }
 
@@ -150,62 +158,108 @@ void addLast(LIST* lp, void* item) {
  * @timeComplexity O(1)
  */
 void* removeFirst(LIST* lp) {
+    printf("removeFirst\n");
     assert(lp != NULL);
     assert(lp->count > 0);
-    void* item = lp->head->data[lp->head->firstIndex];
-    lp->head->firstIndex++;
-    lp->head->count--;
-    lp->count--;
-    if (lp->head->count == 0 && lp->head->next != NULL) {
-        NODE* np = lp->head;
-        lp->head = lp->head->next;
-        free(np->data);
-        free(np);
+    NODE* front = lp->head;
+    while (front->count == 0) {
+        front = front->next;
     }
+    void* item = front->data[front->firstIndex];
+    front->firstIndex = (front->firstIndex + 1) % front->capacity;
+    front->count--;
+    lp->count--;
     return item;
 }
 
+/**
+ * Removes the last element from the array.
+ *
+ * @param lp the list to remove the last element from
+ * @return the removed element
+ * @timeComplexity O(N)
+ */
 void* removeLast(LIST* lp) {
+    printf("removeLast\n");
     assert(lp != NULL);
     assert(lp->count > 0);
-    NODE* a = lp->head;
-    while (a->next != NULL && a->next->count > 0) {
-        a = a->next;
+    NODE* a = lp->head->prev;
+    while (a->count == 0) {
+        a = a->prev;
     }
-    void* item = a->data[a->firstIndex + a->count - 1];
+    void* item = a->data[(a->firstIndex + a->count - 1) % a->capacity];
     a->count--;
     lp->count--;
     return item;
 }
 
+/**
+ * Returns the first element in the list.
+ *
+ * @param lp the list to get the first element from
+ * @return the first element
+ * @timeComplexity O(1)
+ */
 void* getFirst(LIST* lp) {
-    assert(lp != NULL);
-    assert(lp->count > 0);
-    return lp->head->data[lp->head->firstIndex];
-}
-
-void* getLast(LIST* lp) {
+    printf("getFirst\n");
     assert(lp != NULL);
     assert(lp->count > 0);
     NODE* a = lp->head;
-    while (a->next != NULL && a->next->count > 0) {
+    while (a->count == 0) {
         a = a->next;
     }
-    return a->data[a->firstIndex + a->count - 1];
+    return a->data[lp->head->firstIndex];
 }
 
+/**
+ * Returns the last element in the list.
+ *
+ * @param lp the list to get the last element from
+ * @return the last element
+ * @timeComplexity O(N)
+ */
+void* getLast(LIST* lp) {
+    assert(lp != NULL);
+    assert(lp->count > 0);
+    NODE* a = lp->head->prev;
+    while (a->count == 0) {
+        a = a->prev;
+    }
+    return a->data[(a->firstIndex + a->count - 1) % a->capacity];
+}
+
+/**
+ * Returns the item at the given index.
+ *
+ * @param lp the list to access
+ * @param index the index of access
+ * @return the item at the given index
+ * @timeComplexity O(N) where N is the given index
+ */
 void* getItem(LIST* lp, int index) {
+    printf("getItem %i\n", index);
     assert(lp != NULL);
     assert(index >= 0 && index < lp->count);
     NODE* np = lp->head;
+    printf("count: %u", lp->head->count);
     while (index >= np->count) {
+        printf("next\n");
         index -= np->count;
         np = np->next;
     }
-    return np->data[np->firstIndex + index];
+    return np->data[(np->firstIndex + index) % np->capacity];
 }
 
+/**
+ * Sets the item at the given index to the given item.
+ *
+ * @param lp the list to modify
+ * @param index the index to edit
+ * @param item the new value of the item
+ * @timeComplexity O(N) where N is the given index
+ */
 void setItem(LIST* lp, int index, void* item) {
+    printf("setItem %i\n", index);
     assert(lp != NULL);
     assert(index >= 0 && index < lp->count);
     NODE* np = lp->head;
@@ -213,5 +267,24 @@ void setItem(LIST* lp, int index, void* item) {
         index -= np->count;
         np = np->next;
     }
-    np->data[np->firstIndex + index] = item;
+    np->data[(np->firstIndex + index) % np->capacity] = item;
 }
+
+int subNodes(LIST* lp) {
+    int count = 0;
+    NODE* a = lp->head;
+    while (a != NULL) {
+        count++;
+        a = a->next;
+    }
+    return count;
+}
+/*
+
+void debugPrint(LIST* a) {
+    printf("debugPrint\n");
+    printf("numItems: %d\n", numItems(a));
+    printf("subNodes: %d\n", subNodes(a));
+    printf("last: {%hu, %hu}\n", (*(COORD*) getLast(a)).x, (*(COORD*) getLast(a)).y);
+    printf("first: {%hu, %hu}\n", (*(COORD*) getFirst(a)).x, (*(COORD*) getFirst(a)).y);
+}*/

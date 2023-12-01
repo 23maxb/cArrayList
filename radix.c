@@ -20,7 +20,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <assert.h>
-# include "arrayList.c"
+# include "list.h"
 
 # define r 10
 

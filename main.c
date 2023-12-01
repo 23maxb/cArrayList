@@ -1,47 +1,98 @@
-#include "stdlib.h"
-#include "assert.h"
-#include "string.h"
-#include "stdbool.h"
 #include <stdio.h>
-#include "ArrayList.c"
+#include <assert.h>
+#include "list.c"
 
+void testCreateDestroyList() {
+    LIST* list = createList();
+    assert(list != NULL); // Test list creation
 
-static int intcmp(int* i1, int* i2) {
-    assert(i1 != NULL);
-    assert(i2 != NULL);
-    return (*i1 < *i2) ? -1 : (*i1 > *i2);
+    destroyList(list); // Test list destruction
 }
 
-int main(void) {
-    LIST* a = createList();
-    unsigned i = 0;
-    unsigned* j;
-    for (; i < 20; i++) {
-        j = malloc(sizeof(int));
-        *j = i;
-        addLast(a, j);
+void testAddFirstLast() {
+    LIST* list = createList();
+    int items[5] = {1, 2, 3, 4, 5};
+
+    // Test adding to the front
+    for (int i = 0; i < 5; i++) {
+        addFirst(list, &items[i]);
     }
-    j = malloc(sizeof(int));
-    i = 99;
-    *j = i;
-    printf("hello: %u", *((unsigned*) getItem(a, 5)));
-    setItem(a, 5, j);
-    printf("first: %u\n", *((unsigned*) getFirst(a)));
-    for (i = 0; i < numItems(a); i++) {
-        printf("index %u: %u\n", i, *((unsigned*) getItem(a, i)));
+    assert(numItems(list) == 5); // Check size
+
+    // Test adding to the end
+    for (int i = 0; i < 5; i++) {
+        addLast(list, &items[i]);
     }
-    printf("removing last");
-    free(removeLast(a));
-    for (i = 0; i < numItems(a); i++) {
-        printf("index %u: %u\n", i, *((unsigned*) getItem(a, i)));
+    assert(numItems(list) == 10); // Check size
+
+    destroyList(list);
+}
+
+void testRemoveFirstLast() {
+    LIST* list = createList();
+    int items[5] = {1, 2, 3, 4, 5};
+
+    for (int i = 0; i < 5; i++) {
+        addLast(list, &items[i]);
     }
-    printf("removing all");
-    while (numItems(a) > 1) {
-        removeFirst(a);
+
+    // Test removing from the front
+    for (int i = 0; i < 5; i++) {
+        assert(*(int*) removeFirst(list) == items[i]);
     }
-    for (i = 0; i < numItems(a); i++) {
-        printf("index %u: %u\n", i, *((unsigned*) getItem(a, i)));
+
+    // Test removing from the end
+    for (int i = 0; i < 5; i++) {
+        addFirst(list, &items[i]);
     }
-    destroyList(a);
-    exit(EXIT_SUCCESS);
+    for (int i = 0; i < 5; i++) {
+        assert(*(int*) removeLast(list) == items[i]);
+    }
+
+    destroyList(list);
+}
+
+void testGetFirstLastItem() {
+    LIST* list = createList();
+    int items[5] = {1, 2, 3, 4, 5};
+
+    for (int i = 0; i < 5; i++) {
+        addLast(list, &items[i]);
+    }
+
+    assert(*(int*) getFirst(list) == 1);
+    assert(*(int*) getLast(list) == 5);
+
+    destroyList(list);
+}
+
+void testGetSetItem() {
+    LIST* list = createList();
+    int items[5] = {1, 2, 3, 4, 5};
+
+    for (int i = 0; i < 5; i++) {
+        addLast(list, &items[i]);
+    }
+
+    for (int i = 0; i < 5; i++) {
+        assert(*(int*) getItem(list, i) == items[i]);
+    }
+
+    int newItem = 10;
+    setItem(list, 2, &newItem);
+    assert(*(int*) getItem(list, 2) == newItem);
+
+    destroyList(list);
+}
+
+int main() {
+    LIST* list = createList();
+    int* a = malloc(sizeof(int));
+    *a = 65;
+    addLast(list, a);
+    printf("%d\n", *(int*) list->head->data[1]);
+    printf("%d\n", *(int*) getItem(list, 0));
+
+    printf("All tests passed successfully.\n");
+    return 0;
 }

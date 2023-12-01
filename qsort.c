@@ -15,7 +15,7 @@
 # include "list.h"
 
 
-# define MAX_WORD_LENGTH 30        /* maximum length of a single word */
+# define MAX_WORD_LENGTH 30		/* maximum length of a single word */
 
 
 /*
@@ -26,9 +26,10 @@
  *		scheme is used: https://en.wikipedia.org/wiki/Quicksort.
  */
 
-static int partition(LIST* lp, int lo, int hi) {
+static int partition(LIST *lp, int lo, int hi)
+{
     int i, j;
-    char* temp, * x;
+    char *temp, *x;
 
 
     x = getItem(lp, lo);
@@ -36,19 +37,19 @@ static int partition(LIST* lp, int lo, int hi) {
     j = hi + 1;
 
     while (i < j) {
-        do
-            j = j - 1;
-        while (strcmp(getItem(lp, j), x) > 0);
-z
-        do
-            i = i + 1;
-        while (strcmp(getItem(lp, i), x) < 0);
+	do
+	    j = j - 1;
+	while (strcmp(getItem(lp, j), x) > 0);
 
-        if (i < j) {
-            temp = getItem(lp, i);
-            setItem(lp, i, getItem(lp, j));
-            setItem(lp, j, temp);
-        }
+	do
+	    i = i + 1;
+	while (strcmp(getItem(lp, i), x) < 0);
+
+	if (i < j) {
+	    temp = getItem(lp, i);
+	    setItem(lp, i, getItem(lp, j));
+	    setItem(lp, j, temp);
+	}
     }
 
     return j;
@@ -64,14 +65,15 @@ z
  *		recursively sort the upper half of the list.
  */
 
-static void quickSort(LIST* lp, int lo, int hi) {
+static void quickSort(LIST *lp, int lo, int hi)
+{
     int i;
 
 
     if (hi > lo) {
-        i = partition(lp, lo, hi);
-        quickSort(lp, lo, i);
-        quickSort(lp, i + 1, hi);
+	i = partition(lp, lo, hi);
+	quickSort(lp, lo, i);
+	quickSort(lp, i + 1, hi);
     }
 }
 
@@ -82,24 +84,25 @@ static void quickSort(LIST* lp, int lo, int hi) {
  * Description:	Driver function for the qsort application.
  */
 
-int main(int argc, char* argv[]) {
-    FILE* fp;
-    LIST* words;
-    char word[MAX_WORD_LENGTH + 1];
+int main(int argc, char *argv[])
+{
+    FILE *fp;
+    LIST *words;
+    char word[MAX_WORD_LENGTH+1];
 
 
     /* Check the number of arguments and try to open the file. */
 
     if (argc != 2) {
-        fprintf(stderr, "missing filename\n");
-        exit(EXIT_FAILURE);
+	fprintf(stderr, "missing filename\n");
+	exit(EXIT_FAILURE);
     }
 
     fp = fopen(argv[1], "r");
 
     if (fp == NULL) {
-        fprintf(stderr, "cannot open file\n");
-        exit(EXIT_FAILURE);
+	fprintf(stderr, "cannot open file\n");
+	exit(EXIT_FAILURE);
     }
 
 
@@ -108,7 +111,7 @@ int main(int argc, char* argv[]) {
     words = createList();
 
     while (fscanf(fp, "%s", word) == 1)
-        addLast(words, strdup(word));
+	addLast(words, strdup(word));
 
     fclose(fp);
 
@@ -118,7 +121,7 @@ int main(int argc, char* argv[]) {
     quickSort(words, 0, numItems(words) - 1);
 
     while (numItems(words) > 0)
-        printf("%s\n", (char*) removeFirst(words));
+	printf("%s\n", (char *) removeFirst(words));
 
     destroyList(words);
     exit(EXIT_SUCCESS);
