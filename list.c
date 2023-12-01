@@ -93,7 +93,6 @@ int numItems(LIST* lp) {
  * @timeComplexity O(1)
  */
 void addFirst(LIST* lp, void* item) {
-    printf("addFirst\n");
     assert(lp != NULL);
     assert(item != NULL);
     if (lp->head->count == lp->head->capacity) {
@@ -129,23 +128,21 @@ void addLast(LIST* lp, void* item) {
     printf("addLast\n");
     assert(lp != NULL);
     assert(item != NULL);
-    NODE* last = lp->head->prev;
-    if (last->count == last->capacity) {
 
+    if (lp->head->prev->count == lp->head->prev->capacity) {
         NODE* np = malloc(sizeof(NODE));
         assert(np != NULL);
-        np->data = malloc(last->capacity * 2 * sizeof(void*));
+        np->data = malloc(lp->head->prev->capacity * 2 * sizeof(void*));
         assert(np->data != NULL);
         np->next = lp->head;
-        np->prev = last;
+        np->prev = lp->head->prev;
         np->firstIndex = 0;
         np->count = 0;
-        np->capacity = last->capacity * 2;
-        last->next = np;
+        np->capacity = lp->head->prev->capacity * 2;
+        lp->head->prev->next = np;
+        lp->head->prev = np;
     }
-    printf("vaL ;%i\n\n", (last->firstIndex + last->count) % last->capacity);
-
-    lp->head->prev->data[(last->firstIndex + last->count) % last->capacity] = item;
+    lp->head->prev->data[(lp->head->prev->firstIndex + lp->head->prev->count) % lp->head->prev->capacity] = item;
     lp->head->prev->count++;
     lp->count++;
 }
@@ -241,12 +238,13 @@ void* getItem(LIST* lp, int index) {
     assert(lp != NULL);
     assert(index >= 0 && index < lp->count);
     NODE* np = lp->head;
-    printf("count: %u", lp->head->count);
+    printf("count: %u\n", lp->head->count);
     while (index >= np->count) {
         printf("next\n");
         index -= np->count;
         np = np->next;
     }
+    printf("checking getitem: %i\n", (np->firstIndex + index) % np->capacity);
     return np->data[(np->firstIndex + index) % np->capacity];
 }
 
